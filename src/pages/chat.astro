@@ -1,0 +1,25 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { AIChat } from '../components/AIChat';
+---
+
+<Layout title="Chat with AI Assistant">
+  <main class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-8">Chat with AI Assistant</h1>
+      <div class="prose dark:prose-invert max-w-none mb-8">
+        <p>
+          Have questions about my experience, skills, or projects? Chat with my AI assistant! 
+          It's knowledgeable about my expertise in data analytics, HR analytics, and various technical skills.
+        </p>
+      </div>
+      <AIChat client:load />
+    </div>
+  </main>
+</Layout>
+
+<style>
+  main {
+    min-height: calc(100vh - 64px - 80px); /* Adjust based on header and footer height */
+  }
+</style>

@@ -1,58 +1,46 @@
 import type { APIRoute } from 'astro';
-import { verifyToken } from '../../../utils/auth';
 import { supabase } from '../../../lib/supabase';
 
 export const GET: APIRoute = async ({ request }) => {
   try {
-    // Get token from Authorization header
     const authHeader = request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return new Response(
-        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401 }
       );
     }
 
     const token = authHeader.split(' ')[1];
     
-    // Verify token
-    try {
-      verifyToken(token);
-    } catch (err) {
+    // Verify admin token
+    if (!token || token !== import.meta.env.ADMIN_TOKEN) {
       return new Response(
         JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+        { status: 403 }
       );
     }
 
-    // Get activity logs from Supabase
-    const { data: logs, error } = await supabase
+    // Get activity logs
+    const { data: activities, error } = await supabase
       .from('activity_logs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (error) throw error;
 
     return new Response(
-      JSON.stringify({ 
-        logs: logs.map(log => 
-          `[${new Date(log.created_at).toLocaleString()}] ${log.action} by ${log.username}`
-        )
-      }),
-      { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      }
+      JSON.stringify({ activities }),
+      { status: 200 }
     );
+
   } catch (error) {
-    console.error('Error fetching activity logs:', error);
+    console.error('Activity logs error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+      JSON.stringify({ error: 'Failed to fetch activity logs' }),
+      { status: 500 }
     );
   }
 };

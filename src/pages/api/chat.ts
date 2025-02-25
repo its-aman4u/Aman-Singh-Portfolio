@@ -1,151 +1,73 @@
 import type { APIRoute } from 'astro';
-import type { Message, ChatSettings, AdminCommand } from '../../types/chat';
-import { verifyToken } from '../../utils/auth';
-import axios from 'axios';
+import { supabase } from '../../lib/supabase';
 import { OpenAI } from 'openai';
-import type { ChatCompletion } from 'openai/resources/chat';
-import type { AxiosResponse } from 'axios';
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
 
 // Get environment variables
 const OPENAI_API_KEY = import.meta.env.OPENAI_API_KEY;
 const DEEPSEEK_API_KEY = import.meta.env.DEEPSEEK_API_KEY;
 
-// Initialize OpenAI with proper type checking
+// Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY
+  apiKey: OPENAI_API_KEY || '', // Provide empty string as fallback
 });
 
-// Token cost per 1K tokens for different models
-const TOKEN_COSTS = {
-  'gpt-4': { input: 0.03, output: 0.06 },
-  'gpt-3.5-turbo': { input: 0.001, output: 0.002 },
-  'deepseek': { input: 0, output: 0 } // Deepseek is currently free
-} as const;
-
-const countTokens = (text: string): number => {
-  // This is a rough estimation, for precise count use tiktoken
-  return Math.ceil(text.length / 4);
-};
-
-const calculateCost = (model: string, inputTokens: number, outputTokens: number): number => {
-  const costs = TOKEN_COSTS[model as keyof typeof TOKEN_COSTS];
-  if (!costs) return 0;
-  return (inputTokens * costs.input + outputTokens * costs.output) / 1000;
-};
-
-const systemPrompt = `You are an AI assistant for Aman Singh's portfolio website. You are knowledgeable about:
-1. Data Analytics and Visualization
-2. HR Analytics and People Management
-3. Python, R, and SQL for data analysis
-4. Machine Learning and Statistical Analysis
-5. Business Intelligence tools (Power BI, Tableau)
-6. Project Management and Team Leadership
-
-Please provide detailed, accurate responses about Aman's expertise and experience in these areas.`;
-
-interface DeepseekResponse {
-  choices: Array<{
-    message: {
-      content: string;
-    };
-  }>;
+interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
 }
 
-const parseAdminCommand = (message: string): AdminCommand | null => {
-  const command = message.slice(1).trim().toLowerCase(); // Remove the leading '/'
-  const timestamp = Date.now();
-  
-  if (command.startsWith('update about')) {
-    return {
-      type: 'update_content',
-      timestamp,
-      payload: {
-        section: 'about',
-        content: message.slice(13).trim(),
-        timestamp
-      }
-    };
-  }
-  
-  if (command.startsWith('add project')) {
-    try {
-      const projectData = JSON.parse(message.slice(12).trim());
-      return {
-        type: 'add_project',
-        timestamp,
-        payload: {
-          ...projectData,
-          timestamp
-        }
-      };
-    } catch {
-      return null;
-    }
-  }
-  
-  if (command.startsWith('update project')) {
-    try {
-      const projectData = JSON.parse(message.slice(14).trim());
-      return {
-        type: 'update_project',
-        timestamp,
-        payload: {
-          ...projectData,
-          timestamp
-        }
-      };
-    } catch {
-      return null;
-    }
-  }
-  
-  if (command.startsWith('delete project')) {
-    const projectId = message.slice(14).trim();
-    return {
-      type: 'delete_project',
-      timestamp,
-      payload: {
-        id: projectId
-      }
-    };
-  }
-  
-  return null;
-};
+interface ChatSettings {
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+}
+
+interface RateLimitEntry {
+  ip: string;
+  count: number;
+  timestamp: number;
+}
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const { message, context, settings } = await request.json();
-    const { model, temperature, maxTokens } = settings as ChatSettings;
+    const { message, context = [], settings = {} } = await request.json();
+    const { model = 'deepseek', temperature = 0.7, maxTokens = 1000 } = settings as ChatSettings;
 
-    // Check if this is an admin command
-    const authHeader = request.headers.get('Authorization') || '';
-    if (authHeader.startsWith('Bearer ') && message.startsWith('/')) {
-      const token = authHeader.slice(7);
-      const isValidToken = verifyToken(token, import.meta.env.JWT_SECRET || '');
-
-      if (!isValidToken) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid or expired token' }),
-          { status: 401, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const adminCommand = parseAdminCommand(message);
-      if (adminCommand) {
-        return new Response(
-          JSON.stringify({ adminCommand }),
-          {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-      }
+    // Validate input
+    if (!message || typeof message !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid message format' }),
+        { status: 400 }
+      );
     }
+
+    // Rate limiting check
+    const clientIP = request.headers.get('x-forwarded-for') ?? 'unknown';
+    const { data: rateLimit } = await supabase
+      .from('rate_limits')
+      .select('count')
+      .eq('ip', clientIP)
+      .gte('timestamp', new Date(Date.now() - 60000).toISOString())
+      .single();
+
+    const currentCount = rateLimit?.count ?? 0;
+    if (currentCount >= 5) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        { status: 429 }
+      );
+    }
+
+    // Update rate limit
+    await supabase.from('rate_limits').upsert({
+      ip: clientIP,
+      count: currentCount + 1,
+      timestamp: Date.now()
+    } as RateLimitEntry);
 
     // Check if API keys are available
     if (!OPENAI_API_KEY && model !== 'deepseek') {
@@ -155,87 +77,92 @@ export const POST: APIRoute = async ({ request }) => {
       throw new Error('Deepseek API key not found');
     }
 
-    // Calculate input tokens
-    const contextText = context.map((msg: Message) => msg.content).join(' ');
-    const inputTokens = countTokens(contextText + message + systemPrompt);
+    // Prepare messages for AI
+    const allMessages: ChatMessage[] = [
+      ...context.map((msg: ChatMessage) => ({
+        role: msg.role,
+        content: msg.content
+      })),
+      { role: 'user', content: message }
+    ];
 
-    let response: ChatCompletion | AxiosResponse<DeepseekResponse>;
-    let outputTokens: number;
-    let cost: number;
-    let responseContent: string;
+    let responseContent: string = '';
+    let cost = 0;
+    let inputTokens = 0;
+    let outputTokens = 0;
 
     if (model === 'deepseek') {
-      response = await axios.post<DeepseekResponse>(
-        DEEPSEEK_API_URL,
-        {
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...context.map((msg: Message) => ({
-              role: msg.role,
-              content: msg.content
-            })),
-            { role: "user", content: message }
-          ],
-          model: "deepseek-chat",
-          temperature,
-          max_tokens: maxTokens,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      // Call Deepseek API with retries
+      let deepseekResponse;
+      let retries = 0;
+      while (retries < MAX_RETRIES) {
+        try {
+          deepseekResponse = await fetch(DEEPSEEK_API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+            },
+            body: JSON.stringify({
+              model: 'deepseek-chat',
+              messages: allMessages,
+              temperature,
+              max_tokens: maxTokens
+            })
+          });
 
-      responseContent = (response as AxiosResponse<DeepseekResponse>).data.choices[0].message.content;
-      outputTokens = countTokens(responseContent);
-      cost = 0; // Deepseek is currently free
+          if (deepseekResponse.ok) {
+            const data = await deepseekResponse.json();
+            if (data.choices?.[0]?.message?.content) {
+              responseContent = data.choices[0].message.content;
+              break;
+            }
+          }
+          
+          retries++;
+          if (retries < MAX_RETRIES) {
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+          }
+        } catch (error) {
+          console.error(`Attempt ${retries + 1} failed:`, error);
+          retries++;
+          if (retries < MAX_RETRIES) {
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+          }
+        }
+      }
+
+      if (!responseContent) {
+        throw new Error('Failed to get response from Deepseek API');
+      }
+
     } else {
-      response = await openai.chat.completions.create({
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...context.map((msg: Message) => ({
-            role: msg.role,
-            content: msg.content
-          })),
-          { role: "user", content: message }
-        ],
-        model,
+      // Use OpenAI API
+      const response = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: allMessages,
         temperature,
-        max_tokens: maxTokens,
+        max_tokens: maxTokens
       });
 
-      responseContent = response.choices[0].message?.content || 'No response generated';
-      outputTokens = countTokens(responseContent);
-      cost = calculateCost(model, inputTokens, outputTokens);
+      responseContent = response.choices[0]?.message?.content ?? 'No response generated';
     }
 
     return new Response(
       JSON.stringify({
         message: responseContent,
-        tokenCount: inputTokens + outputTokens,
-        cost
+        cost,
+        inputTokens,
+        outputTokens
       }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
+      { status: 200 }
     );
+
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Chat API error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Failed to process request'
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
+      JSON.stringify({ error: 'Failed to process chat request' }),
+      { status: 500 }
     );
   }
 };

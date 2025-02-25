@@ -1,21 +1,16 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
+  "version": 2,
   "framework": "astro",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
   "env": {
-    "OPENAI_API_KEY": "@openai_api_key",
-    "DEEPSEEK_API_KEY": "@deepseek_api_key",
+    "DEEPSEEK_API_KEY": "sk-a1daad410aa24f408955c0cd93e27065",
     "DEFAULT_MODEL": "deepseek",
-    "ADMIN_USERNAME": "@admin_username",
-    "ADMIN_PASSWORD": "@admin_password",
-    "JWT_SECRET": "@jwt_secret",
-    "PUBLIC_SUPABASE_URL": "@public_supabase_url",
-    "PUBLIC_SUPABASE_ANON_KEY": "@public_supabase_anon_key"
+    "ADMIN_USERNAME": "_i__aman",
+    "ADMIN_PASSWORD": "P@ssw0rd#2025$Secure!Portfolio_Aman",
+    "JWT_SECRET": "aM@n#2025$P0rtf0l!0_K9x#mP$2vL8nQ@5hR3fY7wZ1jB4tN6cD9gH2sA5kM8pE3vX7u",
+    "PUBLIC_SUPABASE_URL": "https://oyuwrulgdjgqvozozyps.supabase.co",
+    "PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95dXdydWxnZGpncXZvem96eXBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAzODc1OTQsImV4cCI6MjA1NTk2MzU5NH0.ub2dmDHAq2oT_ivyps_v0A-3rVcivUsv6tdURlasvZw"
   }
 }

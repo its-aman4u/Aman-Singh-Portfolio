@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    versioning-strategy: "auto"
+    target-branch: "main"
+    commit-message:
+      prefix: "⬆️"
+      include: "scope"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "_i__aman"
+    labels:
+      - "dependencies"
+      - "automerge"

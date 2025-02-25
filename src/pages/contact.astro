@@ -1,0 +1,25 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { ContactForm } from '../components/ContactForm';
+---
+
+<Layout title="Contact Me">
+  <main class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-8">Contact Me</h1>
+      <div class="prose dark:prose-invert max-w-none mb-8">
+        <p>
+          I'm always interested in hearing about new opportunities, collaborations, or just having a chat about technology and data science.
+          Feel free to reach out using the form below or connect with me on social media.
+        </p>
+      </div>
+      <ContactForm client:load />
+    </div>
+  </main>
+</Layout>
+
+<style>
+  main {
+    min-height: calc(100vh - 64px - 80px); /* Adjust based on header and footer height */
+  }
+</style>
