@@ -1,0 +1,68 @@
+---
+const skills = [
+  { name: 'Data Analysis', level: 90 },
+  { name: 'HR Analytics', level: 85 },
+  { name: 'Supply Chain Management', level: 80 },
+  { name: 'Excel (Advanced)', level: 95 },
+  { name: 'Power BI', level: 85 },
+  { name: 'SAP', level: 75 },
+];
+
+const certifications = [
+  'Google Data Analytics Professional Certificate',
+  'Learning Excel for Data Analysis',
+  'Data Literacy for Data Analysts',
+  'Lean Six Sigma Green Belt',
+];
+---
+
+<section id="about" class="py-20 bg-slate-800">
+  <div class="container mx-auto px-4">
+    <h2 class="text-4xl font-bold mb-12 text-center">About Me</h2>
+    
+    <div class="grid md:grid-cols-2 gap-12">
+      <div>
+        <h3 class="text-2xl font-semibold mb-4">Professional Overview</h3>
+        <p class="text-gray-300 mb-6">
+          Ambitious MBA graduate with over 3 years of experience in Supply Chain Management, HR Analytics, and Data Analysis. 
+          Skilled in leveraging data-driven decision-making, process optimization, and tools like Excel, SAP, and Power BI.
+        </p>
+        <div class="mb-8">
+          <h4 class="text-xl font-semibold mb-4">Education</h4>
+          <div class="mb-4">
+            <p class="font-medium">MBA in Supply Chain Management & Marketing</p>
+            <p class="text-gray-400">ITM University, Gwalior | CGPA: 8.0/10</p>
+          </div>
+          <div>
+            <p class="font-medium">B.Com in Business Management & Accountancy</p>
+            <p class="text-gray-400">ITM University, Gwalior | CGPA: 8.0/10</p>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <h3 class="text-2xl font-semibold mb-6">Skills</h3>
+        <div class="space-y-4">
+          {skills.map(skill => (
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="font-medium">{skill.name}</span>
+                <span class="text-gray-400">{skill.level}%</span>
+              </div>
+              <div class="w-full bg-gray-700 rounded-full h-2">
+                <div class="bg-purple-600 h-2 rounded-full" style={`width: ${skill.level}%`}></div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <h3 class="text-2xl font-semibold mt-12 mb-6">Certifications</h3>
+        <ul class="list-disc list-inside space-y-2 text-gray-300">
+          {certifications.map(cert => (
+            <li>{cert}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>

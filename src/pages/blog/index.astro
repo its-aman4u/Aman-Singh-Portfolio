@@ -1,0 +1,78 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getBlogPosts } from '../../lib/blog';
+import { format } from 'date-fns';
+
+const posts = await getBlogPosts();
+---
+
+<Layout title="Blog | Your Portfolio">
+  <div class="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 py-20">
+    <div class="container mx-auto px-4">
+      <h1 class="text-5xl font-bold mb-4 text-center bg-gradient-to-r from-purple-400 to-pink-600 text-transparent bg-clip-text">
+        Blog & Community
+      </h1>
+      <p class="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
+        Explore my thoughts on technology, data science, and AI. Join the discussion and share your insights!
+      </p>
+
+      <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        {posts.map((post, index) => (
+          <div
+            class="blog-card bg-slate-800/50 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg hover:shadow-purple-500/20 border border-slate-700/50"
+          >
+            {post.cover_image && (
+              <img 
+                src={post.cover_image} 
+                alt={post.title}
+                class="w-full h-48 object-cover"
+                loading="lazy"
+              />
+            )}
+            <div class="p-6">
+              <div class="flex items-center gap-2 mb-4">
+                {post.tags.map(tag => (
+                  <span class="px-2 py-1 bg-purple-600/20 text-purple-300 rounded-full text-xs">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <h2 class="text-xl font-semibold mb-2 text-white hover:text-purple-400 transition-colors">
+                <a href={`/blog/${post.slug}`}>{post.title}</a>
+              </h2>
+              <p class="text-gray-400 text-sm mb-4 line-clamp-3">
+                {post.excerpt}
+              </p>
+              <div class="flex items-center justify-between text-sm text-gray-500">
+                <div class="flex items-center gap-2">
+                  {post.author?.avatar_url && (
+                    <img 
+                      src={post.author.avatar_url} 
+                      alt={post.author.name}
+                      class="w-6 h-6 rounded-full"
+                    />
+                  )}
+                  <span>{post.author?.name}</span>
+                </div>
+                <time datetime={post.published_at}>
+                  {format(new Date(post.published_at), 'MMM d, yyyy')}
+                </time>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { animate, stagger } from '@motionone/dom';
+
+  // Animate cards on page load
+  animate(
+    '.blog-card',
+    { opacity: [0, 1], y: [20, 0] },
+    { delay: stagger(0.1) }
+  );
+</script>

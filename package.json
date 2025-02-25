@@ -1,0 +1,49 @@
+{
+  "name": "my-portfolio",
+  "type": "module",
+  "version": "0.0.1",
+  "description": "A modern, interactive 3D portfolio website showcasing expertise in data analytics and HR analytics",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "node ./dist/server/entry.mjs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "generate-token": "tsx src/utils/generate-token.ts"
+  },
+  "dependencies": {
+    "@astrojs/react": "^3.0.9",
+    "@astrojs/tailwind": "^5.1.0",
+    "@motionone/dom": "^10.17.0",
+    "@phosphor-icons/react": "^2.0.15",
+    "@supabase/supabase-js": "^2.39.3",
+    "astro": "^4.2.1",
+    "axios": "^1.6.7",
+    "date-fns": "^3.3.1",
+    "dotenv": "^16.4.7",
+    "framer-motion": "^12.4.7",
+    "jsonwebtoken": "^9.0.2",
+    "lottie-web": "^5.12.2",
+    "openai": "^4.26.0",
+    "puppeteer": "^24.3.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^9.0.1",
+    "react-syntax-highlighter": "^15.6.1",
+    "tailwindcss": "^3.4.1",
+    "three": "^0.161.0",
+    "tsx": "^4.7.1",
+    "validator": "^13.12.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.10",
+    "@types/dotenv": "^8.2.0",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^22.13.5",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "@types/three": "^0.161.2",
+    "typescript": "^5.3.3"
+  }
+}

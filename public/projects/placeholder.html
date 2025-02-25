@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Placeholder Images</title>
+</head>
+<body>
+    <canvas id="canvas" width="1024" height="1024" style="display: none;"></canvas>
+    <script>
+        function createPlaceholder(text, filename) {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Add gradient
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#4a90e2');
+            gradient.addColorStop(1, '#50c878');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Add text
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Split text into multiple lines
+            const words = text.split(' ');
+            let lines = [];
+            let currentLine = '';
+            
+            words.forEach(word => {
+                const testLine = currentLine + word + ' ';
+                if (ctx.measureText(testLine).width < canvas.width - 40) {
+                    currentLine = testLine;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word + ' ';
+                }
+            });
+            lines.push(currentLine);
+            
+            // Draw text lines
+            const lineHeight = 60;
+            const startY = canvas.height/2 - (lines.length * lineHeight)/2;
+            
+            lines.forEach((line, i) => {
+                ctx.fillText(line.trim(), canvas.width/2, startY + i * lineHeight);
+            });
+            
+            // Save as image
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/jpeg', 0.8);
+            link.click();
+        }
+        
+        // Create placeholders
+        setTimeout(() => {
+            createPlaceholder('Workforce Analytics Dashboard', 'workforce.jpg');
+            createPlaceholder('Workplace Safety Analysis', 'safety.jpg');
+            createPlaceholder('HR Training and Development', 'training.jpg');
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { getBlogPost } from '../../../lib/blog';
+
+const { action } = Astro.params;
+const isEdit = action === 'edit';
+const post = isEdit ? await getBlogPost(Astro.url.searchParams.get('id')) : null;
+---
+
+<Layout title={`${isEdit ? 'Edit' : 'New'} Blog Post | Your Portfolio`}>
+  <div class="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 py-20">
+    <div class="container mx-auto px-4 max-w-4xl">
+      <h1 class="text-4xl font-bold mb-8 bg-gradient-to-r from-purple-400 to-pink-600 text-transparent bg-clip-text">
+        {isEdit ? 'Edit Post' : 'New Post'}
+      </h1>
+
+      <form id="post-form" class="space-y-6">
+        <div>
+          <label for="title" class="block text-sm font-medium text-gray-400 mb-2">Title</label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            value={post?.title || ''}
+            class="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            required
+          />
+        </div>
+
+        <div>
+          <label for="slug" class="block text-sm font-medium text-gray-400 mb-2">Slug</label>
+          <input
+            type="text"
+            id="slug"
+            name="slug"
+            value={post?.slug || ''}
+            class="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            required
+          />
+        </div>
+
+        <div>
+          <label for="content" class="block text-sm font-medium text-gray-400 mb-2">Content</label>
+          <textarea
+            id="content"
+            name="content"
+            rows="20"
+            class="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+            required
+          >{post?.content || ''}</textarea>
+        </div>
+
+        <div>
+          <label for="tags" class="block text-sm font-medium text-gray-400 mb-2">Tags (comma-separated)</label>
+          <input
+            type="text"
+            id="tags"
+            name="tags"
+            value={post?.tags?.join(', ') || ''}
+            class="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+        </div>
+
+        <div>
+          <label for="cover_image" class="block text-sm font-medium text-gray-400 mb-2">Cover Image URL</label>
+          <input
+            type="url"
+            id="cover_image"
+            name="cover_image"
+            value={post?.cover_image || ''}
+            class="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+        </div>
+
+        <div class="flex items-center gap-4">
+          <button
+            type="submit"
+            class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            {isEdit ? 'Update' : 'Create'} Post
+          </button>
+          <button
+            type="button"
+            id="preview-button"
+            class="px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+          >
+            Preview
+          </button>
+          {isEdit && (
+            <button
+              type="button"
+              id="publish-button"
+              class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors ml-auto"
+            >
+              Publish
+            </button>
+          )}
+        </div>
+      </form>
+
+      <div id="preview" class="hidden mt-8 p-8 bg-slate-800/30 rounded-xl prose prose-invert max-w-none"></div>
+    </div>
+  </div>
+</Layout>
+
+<script define:vars={{ isEdit: isEdit, postId: post?.id }}>
+  // Handle form submission
+  const form = document.getElementById('post-form');
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const data = {
+      title: formData.get('title'),
+      slug: formData.get('slug'),
+      content: formData.get('content'),
+      tags: formData.get('tags').split(',').map(tag => tag.trim()).filter(Boolean),
+      cover_image: formData.get('cover_image')
+    };
+
+    try {
+      const response = await fetch(`/api/blog${isEdit ? `/${postId}` : ''}`, {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (response.ok) {
+        window.location.href = '/admin/blog';
+      }
+    } catch (error) {
+      console.error('Error saving post:', error);
+    }
+  });
+
+  // Handle preview
+  const previewButton = document.getElementById('preview-button');
+  const previewContainer = document.getElementById('preview');
+  const contentInput = document.getElementById('content');
+
+  previewButton?.addEventListener('click', () => {
+    previewContainer.innerHTML = contentInput.value;
+    previewContainer.classList.toggle('hidden');
+    previewButton.textContent = previewContainer.classList.contains('hidden') ? 'Preview' : 'Hide Preview';
+  });
+
+  // Handle publish
+  const publishButton = document.getElementById('publish-button');
+  publishButton?.addEventListener('click', async () => {
+    try {
+      const response = await fetch(`/api/blog/${postId}/publish`, {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        window.location.href = '/admin/blog';
+      }
+    } catch (error) {
+      console.error('Error publishing post:', error);
+    }
+  });
+
+  // Auto-generate slug from title
+  const titleInput = document.getElementById('title');
+  const slugInput = document.getElementById('slug');
+
+  titleInput?.addEventListener('input', () => {
+    if (!slugInput.value) {
+      slugInput.value = titleInput.value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+  });
+</script>

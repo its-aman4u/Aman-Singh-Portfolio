@@ -1,0 +1,36 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { Canvas } from '../components/three/Canvas';
+import { ChatBot } from '../components/ChatBot';
+import HeroSection from '../components/HeroSection.astro';
+import AboutSection from '../components/AboutSection.astro';
+import ProjectsSection from '../components/ProjectsSection.astro';
+---
+
+<Layout title="Aman Singh - Data & HR Analytics Portfolio">
+  <main>
+    <div class="relative">
+      <Canvas client:load />
+      <div class="absolute inset-0 flex items-center justify-center text-center">
+        <div class="max-w-2xl mx-auto px-4">
+          <h1 class="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+            Data & HR Analytics Expert
+          </h1>
+          <p class="text-xl text-gray-700 dark:text-gray-300">
+            Transforming data into actionable insights for better business decisions
+          </p>
+        </div>
+      </div>
+    </div>
+    <ChatBot client:load />
+    <HeroSection />
+    <AboutSection />
+    <ProjectsSection />
+  </main>
+</Layout>
+
+<style>
+  main {
+    min-height: 100vh;
+  }
+</style>
